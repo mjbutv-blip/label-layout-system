@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>标签自动排版系统</title>
+    <style>
+        body {
+            font-family: Arial, "PingFang SC", sans-serif;
+            background: #f3f4f6;
+            margin: 0;
+            padding: 30px;
+        }
+
+        .container {
+            max-width: 1280px;
+            margin: auto;
+            background: #fff;
+            padding: 28px;
+            border-radius: 14px;
+            box-shadow: 0 8px 28px rgba(0,0,0,0.08);
+        }
+
+        h1 {
+            margin-top: 0;
+        }
+
+        .upload-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 18px;
+            margin-bottom: 20px;
+        }
+
+        label {
+            font-weight: bold;
+            display: block;
+            margin-bottom: 8px;
+        }
+
+        input[type="file"] {
+            width: 100%;
+            padding: 10px;
+            background: #fafafa;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+        }
+
+        button {
+            background: #111;
+            color: #fff;
+            border: none;
+            padding: 14px 24px;
+            border-radius: 10px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+
+        button:disabled {
+            background: #888;
+        }
+
+        #status {
+            margin-top: 16px;
+            font-weight: bold;
+        }
+
+        #result {
+            margin-top: 28px;
+            display: none;
+        }
+
+        #preview {
+            width: 100%;
+            border: 1px solid #ddd;
+            background: white;
+            margin-top: 12px;
+        }
+
+        .download {
+            display: inline-block;
+            margin-top: 18px;
+            background: #1677ff;
+            color: white;
+            padding: 12px 18px;
+            border-radius: 8px;
+            text-decoration: none;
+        }
+
+        @media (max-width: 900px) {
+            .upload-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>标签自动排版系统</h1>
+        <p>上传主标、地址标、洗水标 PDF，系统会生成横版 A4 排版 PDF。</p>
+
+        <form id="uploadForm">
+            <div class="upload-grid">
+                <div>
+                    <label>主标 PDF</label>
+                    <input type="file" name="main_pdf" accept="application/pdf" required>
+                </div>
+
+                <div>
+                    <label>地址标 PDF</label>
+                    <input type="file" name="addr_pdf" accept="application/pdf" required>
+                </div>
+
+                <div>
+                    <label>洗水标 PDF</label>
+                    <input type="file" name="wash_pdf" accept="application/pdf" required>
+                </div>
+            </div>
+
+            <button id="submitBtn" type="submit">生成排版 PDF</button>
+        </form>
+
+        <p id="status"></p>
+
+        <div id="result">
+            <h2>排版预览</h2>
+            <img id="preview" src="" alt="排版预览">
+            <br>
+            <a id="downloadLink" class="download" href="" download="final_label_layout.pdf">下载 PDF</a>
+        </div>
+    </div>
+
+    <script>
+        const form = document.getElementById("uploadForm");
+        const statusText = document.getElementById("status");
+        const result = document.getElementById("result");
+        const preview = document.getElementById("preview");
+        const downloadLink = document.getElementById("downloadLink");
+        const submitBtn = document.getElementById("submitBtn");
+
+        form.addEventListener("submit", async function(event) {
+            event.preventDefault();
+
+            statusText.innerText = "正在生成，请稍等...";
+            result.style.display = "none";
+            submitBtn.disabled = true;
+
+            try {
+                const formData = new FormData(form);
+
+                const response = await fetch("/generate_layout/", {
+                    method: "POST",
+                    body: formData
+                });
+
+                if (!response.ok) {
+                    statusText.innerText = "生成失败，请检查 PDF 文件。";
+                    submitBtn.disabled = false;
+                    return;
+                }
+
+                const data = await response.json();
+
+                preview.src = data.preview_url + "?t=" + Date.now();
+                downloadLink.href = data.pdf_url;
+
+                result.style.display = "block";
+                statusText.innerText = "生成完成。";
+            } catch (error) {
+                statusText.innerText = "生成失败：" + error;
+            }
+
+            submitBtn.disabled = false;
+        });
+    </script>
+</body>
+</html>
